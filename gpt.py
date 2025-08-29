@@ -54,24 +54,26 @@ st.markdown("""
 }
 
 /* Buttons */
-.stButton button {
-  background: linear-gradient(90deg, #00ffcc, #0077ff) !important;
-  color: #ffffff !important;   /* Always white text */
-  font-size: 16px;
+.stButton>button {
+  background-color: #00ffcc !important;   /* solid cyan so it's visible */
+  color: #000000 !important;              /* black text, high contrast */
+  font-size: 16px !important;
   border: 2px solid #00ffcc !important;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(0,255,204,0.6);
-  transition: all 0.25s ease-in-out;
+  border-radius: 8px !important;
+  padding: 10px 20px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  box-shadow: 0 0 10px rgba(0,255,204,0.8) !important;
+  transition: all 0.25s ease-in-out !important;
 }
-.stButton button:hover {
-  transform: scale(1.05);
-  background: linear-gradient(90deg, #0077ff, #00ffcc) !important;
+
+.stButton>button:hover {
+  background-color: #0077ff !important;
   color: #ffffff !important;
-  box-shadow: 0 0 18px rgba(0,255,204,1);
+  box-shadow: 0 0 18px rgba(0,255,204,1) !important;
+  transform: scale(1.05) !important;
 }
+
 
 /* Pulsing circle animation */
 @keyframes pulse {
@@ -233,3 +235,4 @@ else:
             st.markdown(f"🧑 **You:** {msg['content']}")
         else:
             st.markdown(f"🤖 **Nova:** {msg['content']}")
+
