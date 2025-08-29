@@ -2,31 +2,32 @@
 import streamlit as st
 import os
 import json
-from openai import OpenAI
+import openai
 
-# Initialize OpenAI client
+# --- API key handling ---
 if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
 else:                                # Local environment
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    openai.api_key = os.getenv("OPENAI_API_KEY")
 
-if not client.api_key:
+if not openai.api_key:
     st.error("❌ No API key found. Please set OPENAI_API_KEY in Streamlit secrets or environment.")
 
-# ====== Custom CSS ======
+# ====== Dark Glowing Background & Styling ======
 st.markdown("""
 <style>
-/* Background */
 .stApp {
-  background: linear-gradient(135deg, #0d1b2a, #1b263b, #0d1b2a);
+  background: linear-gradient(135deg, #000000, #111111, #222222);
   background-size: 400% 400%;
-  animation: gradientMove 12s ease infinite;
+  animation: gradientMove 10s ease infinite;
   min-height: 100vh;
-  color: white;
+  color: white !important;
 }
 [data-testid="stSidebar"] {
-  background: linear-gradient(135deg, #1b263b, #0d1b2a);
-  color: white;
+  background: linear-gradient(135deg, #111111, #222222);
+  background-size: 400% 400%;
+  animation: gradientMove 10s ease infinite;
+  color: white !important;
 }
 @keyframes gradientMove {
   0% {background-position: 0% 50%;}
@@ -34,63 +35,62 @@ st.markdown("""
   100% {background-position: 0% 50%;}
 }
 
-/* Headings & text */
-h1, h2, h3, h4, h5, h6,
-p, label, span, div {
-  color: white !important;
+/* Input boxes */
+.stTextInput > div > div > input {
+    background-color: #1e1e1e !important;
+    color: white !important;
+    border: 1px solid #00ffcc !important;
+    border-radius: 10px;
+    padding: 10px;
+}
+.stTextInput > div > div > input::placeholder {
+    color: #cccccc !important;
 }
 
-/* Tabs */
-[data-baseweb="tab"] {
-  color: white !important;
-  font-weight: bold;
-}
-
-/* Inputs */
-.stTextInput > div > div > input,
-.stTextArea > div > div > textarea {
-  background-color: #1e1e1e !important;
-  color: white !important;
-  border: 1px solid #00ffcc !important;
-  border-radius: 10px;
-  padding: 10px;
-}
-.stTextInput > div > div > input::placeholder,
-.stTextArea > div > div > textarea::placeholder {
-  color: #bfbfbf !important;
+/* Password box */
+.stTextInput input[type="password"] {
+    background-color: #1e1e1e !important;
+    color: white !important;
 }
 
 /* Buttons */
 .stButton button {
-  background: linear-gradient(90deg, #00ffcc, #0077ff);
-  color: #ffffff !important;
+  background: linear-gradient(90deg, #00ffcc, #0077ff) !important;
+  color: #ffffff !important;   /* Always white text */
   font-size: 16px;
-  border: none;
+  border: 2px solid #00ffcc !important;
   border-radius: 8px;
   padding: 10px 20px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  box-shadow: 0 0 10px rgba(0,255,204,0.6);
+  transition: all 0.25s ease-in-out;
 }
 .stButton button:hover {
   transform: scale(1.05);
-  background: linear-gradient(90deg, #0077ff, #00ffcc);
+  background: linear-gradient(90deg, #0077ff, #00ffcc) !important;
   color: #ffffff !important;
+  box-shadow: 0 0 18px rgba(0,255,204,1);
 }
 
-/* Pulsing circle */
+/* Pulsing circle animation */
 @keyframes pulse {
   0% { transform: scale(1); opacity: 0.6; }
   50% { transform: scale(1.5); opacity: 1; }
   100% { transform: scale(1); opacity: 0.6; }
 }
 .loading-circle {
-  width: 20px;
-  height: 20px;
-  margin: 12px auto;
+  width: 25px;
+  height: 25px;
+  margin: 20px auto;
   border-radius: 50%;
   background-color: #00ffcc;
-  animation: pulse 1.2s infinite;
+  animation: pulse 1.5s infinite;
+}
+
+/* Force all text to white */
+html, body, [class*="css"] {
+  color: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -201,12 +201,12 @@ else:
 
         # OpenAI Chat
         try:
-            resp = client.chat.completions.create(
-                model="gpt-4o-mini",
+            resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
                          + st.session_state["chat_history"]
             )
-            reply = resp.choices[0].message.content
+            reply = resp["choices"][0]["message"]["content"]
         except Exception as e:
             reply = f"⚠️ Error: {e}"
 
@@ -214,15 +214,15 @@ else:
 
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
 
-        # OpenAI TTS
+        # (Optional) TTS code for openai==0.28
         try:
-            with client.audio.speech.with_streaming_response.create(
-                model="gpt-4o-mini-tts",
+            audio_resp = openai.Audio.create(
+                model="gpt-3.5-tts",
                 voice="alloy",
                 input=reply
-            ) as response:
-                with open("nova_reply.mp3", "wb") as f:
-                    response.stream_to_file(f)
+            )
+            with open("nova_reply.mp3", "wb") as f:
+                f.write(audio_resp)
             st.audio("nova_reply.mp3", format="audio/mp3")
         except Exception as e:
             st.warning(f"TTS failed: {e}")
@@ -233,5 +233,3 @@ else:
             st.markdown(f"🧑 **You:** {msg['content']}")
         else:
             st.markdown(f"🤖 **Nova:** {msg['content']}")
-
-
