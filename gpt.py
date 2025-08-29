@@ -1,8 +1,10 @@
-# ====== API KEY ======
+# ====== Nova AI Chat ======
 import streamlit as st
 import os
+import json
 import openai
 
+# ====== API KEY ======
 if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
     openai.api_key = st.secrets["OPENAI_API_KEY"]
 else:                                # Local environment
@@ -49,6 +51,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 # ====== User DB ======
 USER_FILE = "users.json"
 
@@ -57,8 +60,11 @@ def load_users():
         return {}
     try:
         with open(USER_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
+            data = f.read().strip()
+            if not data:   # empty file
+                return {}
+            return json.loads(data)
+    except (json.JSONDecodeError, ValueError):
         return {}
 
 def save_users(users: dict):
@@ -81,10 +87,12 @@ def login(username, password):
         return True, "Login successful!"
     return False, "Invalid username or password."
 
+
 # ====== Session state ======
 st.session_state.setdefault("logged_in", False)
 st.session_state.setdefault("username", "")
 st.session_state.setdefault("chat_history", [])
+
 
 # ====== Sidebar ======
 st.sidebar.title("📂 Menu")
@@ -100,6 +108,7 @@ if st.session_state["logged_in"]:
     for msg in st.session_state["chat_history"][-10:]:
         who = "You" if msg["role"] == "user" else "Nova"
         st.sidebar.write(f"**{who}:** {msg['content'][:60]}")
+
 
 # ====== Main area ======
 st.markdown("<h1 style='text-align:center;'>😁 Nova AI Chat</h1>", unsafe_allow_html=True)
@@ -155,12 +164,12 @@ else:
 
         # OpenAI Chat
         try:
-            resp = openai.chat.completions.create(
+            resp = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
                          + st.session_state["chat_history"]
             )
-            reply = resp.choices[0].message.content
+            reply = resp.choices[0].message["content"]
         except Exception as e:
             reply = f"⚠️ Error: {e}"
 
@@ -168,15 +177,15 @@ else:
 
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
 
-        # OpenAI TTS (turn text into audio)
+        # OpenAI TTS (text-to-speech)
         try:
+            speech = openai.Audio.speech.create(
+                model="gpt-4o-mini-tts",
+                voice="alloy",
+                input=reply
+            )
             with open("nova_reply.mp3", "wb") as f:
-                tts_resp = openai.audio.speech.create(
-                    model="gpt-4o-mini-tts",
-                    voice="alloy",
-                    input=reply
-                )
-                f.write(tts_resp.read())
+                f.write(speech.read())
             st.audio("nova_reply.mp3", format="audio/mp3")
         except Exception as e:
             st.warning(f"TTS failed: {e}")
@@ -187,5 +196,3 @@ else:
             st.markdown(f"🧑 **You:** {msg['content']}")
         else:
             st.markdown(f"🤖 **Nova:** {msg['content']}")
-
-
