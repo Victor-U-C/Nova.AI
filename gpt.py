@@ -180,7 +180,7 @@ else:
         # OpenAI TTS (text-to-speech)
         try:
             speech = openai.Audio.speech.create(
-                model="gpt-4o-mini-tts",
+                model="tts-1",
                 voice="alloy",
                 input=reply
             )
@@ -196,3 +196,4 @@ else:
             st.markdown(f"🧑 **You:** {msg['content']}")
         else:
             st.markdown(f"🤖 **Nova:** {msg['content']}")
+
