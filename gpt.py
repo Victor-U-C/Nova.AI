@@ -1,30 +1,33 @@
-# gpt.py - Nova AI Chat (new OpenAI SDK + multi-line chat input)
+# ====== Nova AI Chat App ======
 import streamlit as st
 import os
 import json
 from openai import OpenAI
 
-# ====== API KEY / client ======
-api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-if not api_key:
+# ====== API Key ======
+if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+else:                                # Local environment
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+if not client.api_key:
     st.error("❌ No API key found. Please set OPENAI_API_KEY in Streamlit secrets or environment.")
-    st.stop()
 
-client = OpenAI(api_key=api_key)
 
-# ====== CSS: Dark glowing background + white text + input styling ======
+# ====== Dark Glowing Background & Styles ======
 st.markdown("""
 <style>
+/* Background */
 .stApp {
   background: linear-gradient(135deg, #0d1b2a, #1b263b, #0d1b2a);
   background-size: 400% 400%;
   animation: gradientMove 12s ease infinite;
   min-height: 100vh;
-  color: white !important;
+  color: white;
 }
 [data-testid="stSidebar"] {
   background: linear-gradient(135deg, #1b263b, #0d1b2a);
-  color: white !important;
+  color: white;
 }
 @keyframes gradientMove {
   0% {background-position: 0% 50%;}
@@ -32,42 +35,49 @@ st.markdown("""
   100% {background-position: 0% 50%;}
 }
 
-/* Force all text to white */
-* { color: white !important; }
+/* Headings & text */
+h1, h2, h3, h4, h5, h6,
+p, label, span, div {
+  color: white !important;
+}
 
-/* Tabs text (Login / Sign up) */
-[data-baseweb="tab"] { color: white !important; font-weight: bold; }
-[data-baseweb="tab"] [data-testid="stMarkdownContainer"] p { color: white !important; }
+/* Tabs (Login/Signup) */
+[data-baseweb="tab"] {
+  color: white !important;
+  font-weight: bold;
+}
 
-/* Input boxes */
+/* Inputs (username, password, chat box) */
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
-    background-color: #1e1e1e !important;
-    color: white !important;
-    border: 1px solid #00ffcc !important;
-    border-radius: 10px;
-    padding: 10px;
+  background-color: #1e1e1e !important;
+  color: white !important;
+  border: 1px solid #00ffcc !important;
+  border-radius: 10px;
+  padding: 10px;
 }
 
 /* Placeholder text */
 .stTextInput > div > div > input::placeholder,
 .stTextArea > div > div > textarea::placeholder {
-    color: #bfbfbf !important;
+  color: #bfbfbf !important;
 }
 
 /* Buttons */
 .stButton button {
-    background: linear-gradient(90deg, #00ffcc, #0077ff);
-    color: white !important;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: bold;
-    transition: 0.12s transform;
+  background: linear-gradient(90deg, #00ffcc, #0077ff);
+  color: white !important;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-weight: bold;
+  transition: 0.12s transform;
 }
-.stButton button:hover { transform: scale(1.02); }
+.stButton button:hover {
+  transform: scale(1.02);
+}
 
-/* Pulsing circle animation */
+/* Pulsing circle */
 @keyframes pulse {
   0% { transform: scale(1); opacity: 0.6; }
   50% { transform: scale(1.5); opacity: 1; }
@@ -84,7 +94,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ====== User DB (safe load) ======
+
+# ====== User DB ======
 USER_FILE = "users.json"
 
 def load_users():
@@ -92,11 +103,8 @@ def load_users():
         return {}
     try:
         with open(USER_FILE, "r", encoding="utf-8") as f:
-            data = f.read().strip()
-            if not data:
-                return {}
-            return json.loads(data)
-    except (json.JSONDecodeError, ValueError):
+            return json.load(f)
+    except json.JSONDecodeError:
         return {}
 
 def save_users(users: dict):
@@ -119,10 +127,12 @@ def login(username, password):
         return True, "Login successful!"
     return False, "Invalid username or password."
 
+
 # ====== Session state ======
 st.session_state.setdefault("logged_in", False)
 st.session_state.setdefault("username", "")
 st.session_state.setdefault("chat_history", [])
+
 
 # ====== Sidebar ======
 st.sidebar.title("📂 Menu")
@@ -132,17 +142,19 @@ if st.session_state["logged_in"]:
         st.session_state["logged_in"] = False
         st.session_state["username"] = ""
         st.session_state["chat_history"] = []
-        st.experimental_rerun()
+        st.rerun()
 
     st.sidebar.subheader("📜 Chat history (preview)")
     for msg in st.session_state["chat_history"][-10:]:
         who = "You" if msg["role"] == "user" else "Nova"
         st.sidebar.write(f"**{who}:** {msg['content'][:60]}")
 
+
 # ====== Main area ======
 st.markdown("<h1 style='text-align:center;'>😁 Nova AI Chat</h1>", unsafe_allow_html=True)
 
 if not st.session_state["logged_in"]:
+    # ---- AUTH TABS ----
     login_tab, signup_tab = st.tabs(["🔑 Login", "📝 Sign up"])
 
     with login_tab:
@@ -156,7 +168,7 @@ if not st.session_state["logged_in"]:
                 if ok:
                     st.session_state["logged_in"] = True
                     st.session_state["username"] = u
-                    st.experimental_rerun()
+                    st.rerun()
 
     with signup_tab:
         with st.form("signup_form"):
@@ -173,57 +185,53 @@ if not st.session_state["logged_in"]:
                         st.success(msg)
                         st.session_state["logged_in"] = True
                         st.session_state["username"] = u2
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error(msg)
 
 else:
-    # Use a multi-line text_area so Enter creates a newline.
-    # Instructions: Enter = newline, click Send to submit. (If you want Enter-to-send + Shift+Enter newline, I can add a custom component.)
-    prompt = st.text_area("Ask Nova… (press Enter for newline — click Send to submit)", height=120, key="chat_input")
+    # ---- Chat UI ----
+    prompt = st.text_area("Ask Nova…", height=100, placeholder="Type here... (Shift+Enter for new line)")
     send = st.button("Send")
 
-    if send and prompt and prompt.strip():
+    if send and prompt.strip():
+        # user message
         st.session_state["chat_history"].append({"role": "user", "content": prompt})
 
         # show pulsing circle while thinking
         loader = st.empty()
         loader.markdown('<div class="loading-circle"></div>', unsafe_allow_html=True)
 
-        # Build messages: system prompt + chat history
-        messages = [{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
-        # ensure chat_history is in correct format (list of dicts)
-        messages += st.session_state["chat_history"]
-
-        # Chat (new OpenAI SDK)
+        # OpenAI Chat
         try:
             resp = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=messages
+                messages=[{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
+                         + st.session_state["chat_history"]
             )
-            # extract reply
             reply = resp.choices[0].message.content
         except Exception as e:
             reply = f"⚠️ Error: {e}"
 
-        loader.empty()  # remove loading indicator
+        loader.empty()  # remove the circle
 
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
 
-        # TTS (new SDK) - uses tts-1 model and streaming-to-file
+        # OpenAI TTS (turn text into audio)
         try:
-            speech_file = "nova_reply.mp3"
             with client.audio.speech.with_streaming_response.create(
-                model="tts-1",
+                model="gpt-4o-mini-tts",
                 voice="alloy",
-                input=reply
+                input=reply,
             ) as response:
-                response.stream_to_file(speech_file)
-            st.audio(speech_file, format="audio/mp3")
+                with open("nova_reply.mp3", "wb") as f:
+                    response.stream_to_file(f.name)
+
+            st.audio("nova_reply.mp3", format="audio/mp3")
         except Exception as e:
             st.warning(f"TTS failed: {e}")
 
-    # render chat history (simple)
+    # render chat
     for msg in st.session_state["chat_history"]:
         if msg["role"] == "user":
             st.markdown(f"🧑 **You:** {msg['content']}")
