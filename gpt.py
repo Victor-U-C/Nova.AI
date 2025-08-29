@@ -13,86 +13,181 @@ else:                                # Local environment
 if not openai.api_key:
     st.error("❌ No API key found. Please set OPENAI_API_KEY in Streamlit secrets or environment.")
 
-# ====== Dark Glowing Background & Styling ======
+# ====== Enhanced Dark Theme with Better Visibility ======
 st.markdown("""
 <style>
+/* Main app background */
 .stApp {
-  background: linear-gradient(135deg, #000000, #111111, #222222);
-  background-size: 400% 400%;
-  animation: gradientMove 10s ease infinite;
-  min-height: 100vh;
-  color: white !important;
+    background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
+    background-size: 400% 400%;
+    animation: gradientMove 15s ease infinite;
+    min-height: 100vh;
 }
+
+/* Sidebar styling */
 [data-testid="stSidebar"] {
-  background: linear-gradient(135deg, #111111, #222222);
-  background-size: 400% 400%;
-  animation: gradientMove 10s ease infinite;
-  color: white !important;
+    background: linear-gradient(135deg, #16213e, #1a1a2e, #0f0f23);
+    background-size: 400% 400%;
+    animation: gradientMove 15s ease infinite;
 }
+
+/* Gradient animation */
 @keyframes gradientMove {
-  0% {background-position: 0% 50%;}
-  50% {background-position: 100% 50%;}
-  100% {background-position: 0% 50%;}
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
 }
 
-/* Input boxes */
-.stTextInput > div > div > input {
-    background-color: #1e1e1e !important;
-    color: white !important;
+/* Force text visibility */
+.stApp, .stApp * {
+    color: #ffffff !important;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+    color: #00ffcc !important;
+    text-shadow: 0 0 10px rgba(0,255,204,0.5);
+}
+
+/* Input fields - much better visibility */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border: 2px solid #00ffcc !important;
+    border-radius: 10px !important;
+    padding: 12px !important;
+    font-size: 16px !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: #0077ff !important;
+    box-shadow: 0 0 15px rgba(0,255,204,0.6) !important;
+}
+
+.stTextInput > div > div > input::placeholder,
+.stTextArea > div > div > textarea::placeholder {
+    color: #aaaaaa !important;
+}
+
+/* Labels for inputs */
+.stTextInput > label,
+.stTextArea > label {
+    color: #ffffff !important;
+    font-weight: bold !important;
+}
+
+/* Buttons with enhanced visibility */
+.stButton > button {
+    background: linear-gradient(45deg, #00ffcc, #0077ff) !important;
+    color: #000000 !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 12px 24px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(0,255,204,0.4) !important;
+    transition: all 0.3s ease !important;
+    width: 100% !important;
+}
+
+.stButton > button:hover {
+    background: linear-gradient(45deg, #0077ff, #00ffcc) !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 20px rgba(0,255,204,0.8) !important;
+    transform: translateY(-2px) scale(1.02) !important;
+}
+
+/* Form containers */
+.stForm {
+    background-color: rgba(45, 45, 45, 0.8) !important;
     border: 1px solid #00ffcc !important;
-    border-radius: 10px;
-    padding: 10px;
-}
-.stTextInput > div > div > input::placeholder {
-    color: #cccccc !important;
+    border-radius: 15px !important;
+    padding: 20px !important;
+    backdrop-filter: blur(10px) !important;
 }
 
-/* Password box */
-.stTextInput input[type="password"] {
-    background-color: #1e1e1e !important;
-    color: white !important;
+/* Tab styling */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
 }
 
-/* Buttons */
-.stButton>button {
-  background-color: #00ffcc !important;   /* solid cyan so it's visible */
-  color: #000000 !important;              /* black text, high contrast */
-  font-size: 16px !important;
-  border: 2px solid #00ffcc !important;
-  border-radius: 8px !important;
-  padding: 10px 20px !important;
-  font-weight: bold !important;
-  cursor: pointer !important;
-  box-shadow: 0 0 10px rgba(0,255,204,0.8) !important;
-  transition: all 0.25s ease-in-out !important;
+.stTabs [data-baseweb="tab"] {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    border: 1px solid #00ffcc !important;
 }
 
-.stButton>button:hover {
-  background-color: #0077ff !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 18px rgba(0,255,204,1) !important;
-  transform: scale(1.05) !important;
+.stTabs [aria-selected="true"] {
+    background-color: #00ffcc !important;
+    color: #000000 !important;
 }
 
+/* Messages styling */
+.chat-message {
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 12px;
+    border-left: 4px solid #00ffcc;
+    background-color: rgba(45, 45, 45, 0.7);
+    backdrop-filter: blur(5px);
+}
 
-/* Pulsing circle animation */
+/* Success/Error messages */
+.stSuccess {
+    background-color: rgba(0, 255, 100, 0.2) !important;
+    color: #00ff64 !important;
+    border: 1px solid #00ff64 !important;
+}
+
+.stError {
+    background-color: rgba(255, 100, 100, 0.2) !important;
+    color: #ff6464 !important;
+    border: 1px solid #ff6464 !important;
+}
+
+.stWarning {
+    background-color: rgba(255, 200, 0, 0.2) !important;
+    color: #ffc800 !important;
+    border: 1px solid #ffc800 !important;
+}
+
+.stInfo {
+    background-color: rgba(0, 200, 255, 0.2) !important;
+    color: #00c8ff !important;
+    border: 1px solid #00c8ff !important;
+}
+
+/* Loading animation */
 @keyframes pulse {
-  0% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.5); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.6; }
-}
-.loading-circle {
-  width: 25px;
-  height: 25px;
-  margin: 20px auto;
-  border-radius: 50%;
-  background-color: #00ffcc;
-  animation: pulse 1.5s infinite;
+    0% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.5); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.6; }
 }
 
-/* Force all text to white */
-html, body, [class*="css"] {
-  color: white !important;
+.loading-circle {
+    width: 30px;
+    height: 30px;
+    margin: 20px auto;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #00ffcc, #0077ff);
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 20px rgba(0,255,204,0.8);
+}
+
+/* Sidebar text visibility */
+.sidebar .element-container {
+    color: #ffffff !important;
+}
+
+/* Audio player styling */
+audio {
+    width: 100% !important;
+    margin: 10px 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -137,46 +232,71 @@ st.session_state.setdefault("chat_history", [])
 # ====== Sidebar ======
 st.sidebar.title("📂 Menu")
 if st.session_state["logged_in"]:
-    st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
-    if st.sidebar.button("Logout"):
+    st.sidebar.markdown(f"**🟢 Logged in as:** {st.session_state['username']}")
+    if st.sidebar.button("🚪 Logout"):
         st.session_state["logged_in"] = False
         st.session_state["username"] = ""
         st.session_state["chat_history"] = []
         st.rerun()
 
-    st.sidebar.subheader("📜 Chat history (preview)")
-    for msg in st.session_state["chat_history"][-10:]:
+    if st.sidebar.button("🗑️ Clear Chat"):
+        st.session_state["chat_history"] = []
+        st.rerun()
+
+    st.sidebar.subheader("📜 Recent Messages")
+    for i, msg in enumerate(st.session_state["chat_history"][-5:]):
         who = "You" if msg["role"] == "user" else "Nova"
-        st.sidebar.write(f"**{who}:** {msg['content'][:60]}")
+        preview = msg['content'][:50] + "..." if len(msg['content']) > 50 else msg['content']
+        st.sidebar.markdown(f"**{who}:** {preview}")
 
 # ====== Main area ======
-st.markdown("<h1 style='text-align:center;'>😁 Nova AI Chat</h1>", unsafe_allow_html=True)
+st.markdown("""
+<div style='text-align: center; margin-bottom: 30px;'>
+    <h1 style='font-size: 3em; background: linear-gradient(45deg, #00ffcc, #0077ff); 
+               -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+               text-shadow: 0 0 30px rgba(0,255,204,0.8);'>
+        🤖 Nova AI Chat
+    </h1>
+    <p style='font-size: 1.2em; color: #cccccc; margin-top: 10px;'>
+        Your intelligent AI assistant
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 if not st.session_state["logged_in"]:
-    # ---- AUTH TABS ----
+    # ---- AUTH TABS with better visibility ----
     login_tab, signup_tab = st.tabs(["🔑 Login", "📝 Sign up"])
 
     with login_tab:
+        st.markdown("### Welcome back!")
         with st.form("login_form"):
-            u = st.text_input("Username", key="login_user")
-            p = st.text_input("Password", type="password", key="login_pass")
-            do_login = st.form_submit_button("Log in")
+            u = st.text_input("Username", placeholder="Enter your username", key="login_user")
+            p = st.text_input("Password", type="password", placeholder="Enter your password", key="login_pass")
+            do_login = st.form_submit_button("🚀 Log in")
             if do_login:
-                ok, msg = login(u, p)
-                st.info(msg)
-                if ok:
-                    st.session_state["logged_in"] = True
-                    st.session_state["username"] = u
-                    st.rerun()
+                if not u or not p:
+                    st.error("Please fill in both fields.")
+                else:
+                    ok, msg = login(u, p)
+                    if ok:
+                        st.success(msg)
+                        st.session_state["logged_in"] = True
+                        st.session_state["username"] = u
+                        st.rerun()
+                    else:
+                        st.error(msg)
 
     with signup_tab:
+        st.markdown("### Create your account")
         with st.form("signup_form"):
-            u2 = st.text_input("Choose a username", key="signup_user")
-            p2 = st.text_input("Choose a password", type="password", key="signup_pass")
-            p2c = st.text_input("Confirm password", type="password", key="signup_confirm")
-            do_signup = st.form_submit_button("Create account")
+            u2 = st.text_input("Choose a username", placeholder="Pick a unique username", key="signup_user")
+            p2 = st.text_input("Choose a password", type="password", placeholder="Create a strong password", key="signup_pass")
+            p2c = st.text_input("Confirm password", type="password", placeholder="Confirm your password", key="signup_confirm")
+            do_signup = st.form_submit_button("✨ Create account")
             if do_signup:
-                if p2 != p2c:
+                if not u2 or not p2 or not p2c:
+                    st.error("Please fill in all fields.")
+                elif p2 != p2c:
                     st.error("Passwords do not match.")
                 else:
                     ok, msg = signup(u2, p2)
@@ -189,50 +309,132 @@ if not st.session_state["logged_in"]:
                         st.error(msg)
 
 else:
-    # ---- Chat UI ----
-    prompt = st.text_area("Ask Nova… (Shift+Enter for new line)", height=100)
-    send = st.button("Send")
+    # ---- Chat UI with improved visibility ----
+    st.markdown("---")
+    
+    # Display chat history first
+    if st.session_state["chat_history"]:
+        st.subheader("💬 Conversation")
+        for msg in st.session_state["chat_history"]:
+            if msg["role"] == "user":
+                st.markdown(f"""
+                <div style='background: rgba(0,255,204,0.1); padding: 15px; margin: 10px 0; 
+                           border-radius: 12px; border-left: 4px solid #00ffcc;'>
+                    <strong style='color: #00ffcc;'>🧑 You:</strong><br>
+                    <span style='color: #ffffff; font-size: 16px;'>{msg['content']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style='background: rgba(0,119,255,0.1); padding: 15px; margin: 10px 0; 
+                           border-radius: 12px; border-left: 4px solid #0077ff;'>
+                    <strong style='color: #0077ff;'>🤖 Nova:</strong><br>
+                    <span style='color: #ffffff; font-size: 16px;'>{msg['content']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+        st.markdown("---")
+
+    # Input area
+    st.subheader("💭 Ask Nova something...")
+    prompt = st.text_area(
+        "Your message:", 
+        placeholder="Type your message here... (Shift+Enter for new line)",
+        height=120,
+        key="user_input"
+    )
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        send = st.button("🚀 Send Message", use_container_width=True)
 
     if send and prompt.strip():
-        # user message
+        # Add user message
         st.session_state["chat_history"].append({"role": "user", "content": prompt})
 
-        # show pulsing circle while thinking
-        loader = st.empty()
-        loader.markdown('<div class="loading-circle"></div>', unsafe_allow_html=True)
+        # Show loading indicator
+        with st.spinner("🤔 Nova is thinking..."):
+            loader = st.empty()
+            loader.markdown("""
+            <div style='text-align: center; margin: 20px 0;'>
+                <div class="loading-circle"></div>
+                <p style='color: #00ffcc; margin-top: 10px;'>Processing your request...</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # OpenAI Chat
-        try:
-            resp = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
-                         + st.session_state["chat_history"]
-            )
-            reply = resp["choices"][0]["message"]["content"]
-        except Exception as e:
-            reply = f"⚠️ Error: {e}"
+            # OpenAI API call (updated for newer versions)
+            try:
+                # Updated API call for openai>=1.0
+                from openai import OpenAI
+                client = OpenAI(api_key=openai.api_key)
+                
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant. Provide clear, concise, and engaging responses."}]
+                             + st.session_state["chat_history"],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                reply = response.choices[0].message.content
+                
+            except Exception as e:
+                # Fallback for older openai versions
+                try:
+                    resp = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant."}]
+                                 + st.session_state["chat_history"],
+                        max_tokens=500,
+                        temperature=0.7
+                    )
+                    reply = resp["choices"][0]["message"]["content"]
+                except Exception as e2:
+                    reply = f"⚠️ Sorry, I'm having trouble connecting right now. Error: {str(e2)[:100]}"
 
-        loader.empty()  # remove the circle
+            loader.empty()
 
+        # Add assistant response
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
 
-        # (Optional) TTS code for openai==0.28
+        # Optional TTS (commented out as it may not work with all OpenAI versions)
+        """
         try:
-            audio_resp = openai.Audio.create(
-                model="gpt-3.5-tts",
+            # For newer OpenAI versions
+            speech_response = client.audio.speech.create(
+                model="tts-1",
                 voice="alloy",
-                input=reply
+                input=reply[:500]  # Limit length for TTS
             )
-            with open("nova_reply.mp3", "wb") as f:
-                f.write(audio_resp)
-            st.audio("nova_reply.mp3", format="audio/mp3")
+            audio_data = speech_response.content
+            st.audio(audio_data, format="audio/mp3")
         except Exception as e:
-            st.warning(f"TTS failed: {e}")
+            pass  # Silently fail TTS if not available
+        """
 
-    # render chat
-    for msg in st.session_state["chat_history"]:
-        if msg["role"] == "user":
-            st.markdown(f"🧑 **You:** {msg['content']}")
-        else:
-            st.markdown(f"🤖 **Nova:** {msg['content']}")
+        st.rerun()
 
+    # Instructions
+    if not st.session_state["chat_history"]:
+        st.markdown("""
+        <div style='text-align: center; margin-top: 40px; padding: 20px; 
+                   background: rgba(0,255,204,0.1); border-radius: 15px; 
+                   border: 1px solid rgba(0,255,204,0.3);'>
+            <h3 style='color: #00ffcc; margin-bottom: 15px;'>👋 Welcome to Nova AI!</h3>
+            <p style='color: #ffffff; font-size: 16px; line-height: 1.5;'>
+                Start a conversation by typing a message above. I can help with:
+            </p>
+            <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;'>
+                <div style='background: rgba(0,119,255,0.1); padding: 15px; border-radius: 10px; border: 1px solid #0077ff;'>
+                    <strong style='color: #0077ff;'>💡 Questions & Answers</strong><br>
+                    <span style='color: #cccccc;'>Ask me anything!</span>
+                </div>
+                <div style='background: rgba(0,255,204,0.1); padding: 15px; border-radius: 10px; border: 1px solid #00ffcc;'>
+                    <strong style='color: #00ffcc;'>🛠️ Problem Solving</strong><br>
+                    <span style='color: #cccccc;'>Get help with tasks</span>
+                </div>
+                <div style='background: rgba(255,100,255,0.1); padding: 15px; border-radius: 10px; border: 1px solid #ff64ff;'>
+                    <strong style='color: #ff64ff;'>💭 Creative Writing</strong><br>
+                    <span style='color: #cccccc;'>Stories, ideas, brainstorming</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
