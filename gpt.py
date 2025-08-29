@@ -18,17 +18,17 @@ st.markdown("""
 <style>
 /* Main app background */
 .stApp {
-    background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
-    background-size: 400% 400%;
-    animation: gradientMove 15s ease infinite;
-    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1a1a, #2d2d2d, #1a1a2e) !important;
+    background-size: 400% 400% !important;
+    animation: gradientMove 15s ease infinite !important;
+    min-height: 100vh !important;
 }
 
 /* Sidebar styling */
 [data-testid="stSidebar"] {
-    background: linear-gradient(135deg, #16213e, #1a1a2e, #0f0f23);
-    background-size: 400% 400%;
-    animation: gradientMove 15s ease infinite;
+    background: linear-gradient(135deg, #2d2d2d, #1a1a2e, #333333) !important;
+    background-size: 400% 400% !important;
+    animation: gradientMove 15s ease infinite !important;
 }
 
 /* Gradient animation */
@@ -38,9 +38,23 @@ st.markdown("""
     100% {background-position: 0% 50%;}
 }
 
-/* Force text visibility */
-.stApp, .stApp * {
+/* Force ALL text to be visible */
+.stApp, .stApp *, .stMarkdown, .stMarkdown *, 
+.stText, .stText *, p, span, div, label {
     color: #ffffff !important;
+}
+
+/* Streamlit specific elements */
+.stMarkdown p, .stMarkdown div, .stMarkdown span {
+    color: #ffffff !important;
+}
+
+/* Tab content */
+.stTabs [data-baseweb="tab-panel"] {
+    background-color: rgba(45, 45, 45, 0.3) !important;
+    padding: 20px !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(0,255,204,0.2) !important;
 }
 
 /* Headers */
@@ -49,33 +63,40 @@ h1, h2, h3, h4, h5, h6 {
     text-shadow: 0 0 10px rgba(0,255,204,0.5);
 }
 
-/* Input fields - much better visibility */
+/* Input fields - ENHANCED VISIBILITY */
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
-    background-color: #2d2d2d !important;
+    background-color: #3d3d3d !important;
     color: #ffffff !important;
     border: 2px solid #00ffcc !important;
     border-radius: 10px !important;
-    padding: 12px !important;
+    padding: 15px !important;
     font-size: 16px !important;
+    font-weight: normal !important;
 }
 
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
     border-color: #0077ff !important;
-    box-shadow: 0 0 15px rgba(0,255,204,0.6) !important;
+    box-shadow: 0 0 20px rgba(0,255,204,0.8) !important;
+    outline: none !important;
 }
 
 .stTextInput > div > div > input::placeholder,
 .stTextArea > div > div > textarea::placeholder {
-    color: #aaaaaa !important;
+    color: #bbbbbb !important;
+    font-style: italic !important;
 }
 
-/* Labels for inputs */
+/* Input labels - MUCH MORE VISIBLE */
 .stTextInput > label,
 .stTextArea > label {
-    color: #ffffff !important;
+    color: #00ffcc !important;
     font-weight: bold !important;
+    font-size: 18px !important;
+    text-shadow: 0 0 5px rgba(0,255,204,0.5) !important;
+    margin-bottom: 8px !important;
+    display: block !important;
 }
 
 /* Buttons with enhanced visibility */
@@ -109,22 +130,32 @@ h1, h2, h3, h4, h5, h6 {
     backdrop-filter: blur(10px) !important;
 }
 
-/* Tab styling */
+/* Tab styling - FIXED */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 8px;
+    gap: 8px !important;
+    background-color: transparent !important;
 }
 
 .stTabs [data-baseweb="tab"] {
-    background-color: #2d2d2d !important;
+    background-color: #3d3d3d !important;
     color: #ffffff !important;
     border-radius: 8px !important;
-    padding: 8px 16px !important;
-    border: 1px solid #00ffcc !important;
+    padding: 12px 20px !important;
+    border: 2px solid #00ffcc !important;
+    font-weight: bold !important;
+    font-size: 16px !important;
 }
 
 .stTabs [aria-selected="true"] {
     background-color: #00ffcc !important;
     color: #000000 !important;
+    border: 2px solid #00ffcc !important;
+    box-shadow: 0 0 15px rgba(0,255,204,0.6) !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: #4d4d4d !important;
+    box-shadow: 0 0 10px rgba(0,255,204,0.3) !important;
 }
 
 /* Messages styling */
