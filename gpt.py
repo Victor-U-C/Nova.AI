@@ -6,6 +6,7 @@ import openai
 # ✅ Option 1: safer way (use environment variable)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+
 # ✅ Option 2: direct (for testing only – replace with your real key!)
 # openai.api_key = "sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx"
 
@@ -184,3 +185,4 @@ else:
             st.markdown(f"🧑 **You:** {msg['content']}")
         else:
             st.markdown(f"🤖 **Nova:** {msg['content']}")
+
