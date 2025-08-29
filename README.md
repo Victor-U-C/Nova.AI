@@ -13,10 +13,10 @@ If you prefer a desktop app instead of the Streamlit web version, you can run No
 pip install openai
 
 # Set your API key (Mac/Linux)
-export OPENAI_API_KEY="your_api_key_here"
+export OPENAI_API_KEY="OPEN_API_KEY"
 
 # Or (Windows PowerShell)
-setx OPENAI_API_KEY "your_api_key_here"
+setx OPENAI_API_KEY "OPEN_API_KEY"
 
 # Then run the Tkinter app
 python nova_tkinter.py
