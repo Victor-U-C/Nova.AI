@@ -1,37 +1,85 @@
 # ====== API KEY ======
 import streamlit as st
 import os
+import openai
 import json
-from openai import OpenAI
 
-# Create OpenAI client
 if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
 else:                                # Local environment
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    openai.api_key = os.getenv("OPENAI_API_KEY")
 
-if not client.api_key:
+if not openai.api_key:
     st.error("❌ No API key found. Please set OPENAI_API_KEY in Streamlit secrets or environment.")
 
-
-# ====== Glowing background ======
+# ====== Glowing Dark Background & White Text ======
 st.markdown("""
 <style>
 .stApp {
-  background: linear-gradient(135deg, #00ff00, #ffff00, #ff6600);
+  background: linear-gradient(135deg, #0d1b2a, #1b263b, #0d1b2a);
   background-size: 400% 400%;
-  animation: gradientMove 10s ease infinite;
+  animation: gradientMove 12s ease infinite;
   min-height: 100vh;
+  color: white !important;
 }
 [data-testid="stSidebar"] {
-  background: linear-gradient(135deg, #00ff00, #ffff00);
-  background-size: 400% 400%;
-  animation: gradientMove 10s ease infinite;
+  background: linear-gradient(135deg, #1b263b, #0d1b2a);
+  color: white !important;
 }
 @keyframes gradientMove {
   0% {background-position: 0% 50%;}
   50% {background-position: 100% 50%;}
   100% {background-position: 0% 50%;}
+}
+
+/* Force all text to white */
+h1, h2, h3, h4, h5, h6, p, label, span, div, button, .stMarkdown, .stText {
+  color: white !important;
+}
+
+/* Tabs text (Login / Sign up) */
+[data-baseweb="tab"] {
+  color: white !important;
+  font-weight: bold;
+}
+[data-baseweb="tab"] [data-testid="stMarkdownContainer"] p {
+  color: white !important;
+}
+
+/* Active tab underline */
+[data-baseweb="tab-highlight"] {
+  border-color: #00ffcc !important;
+}
+
+/* Input boxes */
+.stTextInput > div > div > input {
+    background-color: #1e1e1e !important;
+    color: white !important;
+    border: 1px solid #00ffcc !important;
+    border-radius: 10px;
+    padding: 10px;
+}
+.stTextInput > div > div > input::placeholder {
+    color: #cccccc !important;
+}
+.stTextInput input[type="password"] {
+    background-color: #1e1e1e !important;
+    color: white !important;
+}
+
+/* Buttons */
+.stButton button {
+    background: linear-gradient(90deg, #00ffcc, #0077ff);
+    color: white !important;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.stButton button:hover {
+    background: linear-gradient(90deg, #0077ff, #00ffcc);
+    transform: scale(1.05);
 }
 
 /* Pulsing circle animation */
@@ -50,7 +98,6 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 # ====== User DB ======
 USER_FILE = "users.json"
@@ -84,12 +131,10 @@ def login(username, password):
         return True, "Login successful!"
     return False, "Invalid username or password."
 
-
 # ====== Session state ======
 st.session_state.setdefault("logged_in", False)
 st.session_state.setdefault("username", "")
 st.session_state.setdefault("chat_history", [])
-
 
 # ====== Sidebar ======
 st.sidebar.title("📂 Menu")
@@ -105,7 +150,6 @@ if st.session_state["logged_in"]:
     for msg in st.session_state["chat_history"][-10:]:
         who = "You" if msg["role"] == "user" else "Nova"
         st.sidebar.write(f"**{who}:** {msg['content'][:60]}")
-
 
 # ====== Main area ======
 st.markdown("<h1 style='text-align:center;'>😁 Nova AI Chat</h1>", unsafe_allow_html=True)
@@ -161,12 +205,12 @@ else:
 
         # OpenAI Chat
         try:
-            resp = client.chat.completions.create(
-                model="gpt-4o-mini",
+            resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
                          + st.session_state["chat_history"]
             )
-            reply = resp.choices[0].message.content
+            reply = resp.choices[0].message["content"]
         except Exception as e:
             reply = f"⚠️ Error: {e}"
 
@@ -174,17 +218,16 @@ else:
 
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
 
-        # OpenAI TTS (new API)
+        # TTS
         try:
-            speech_file = "nova_reply.mp3"
-            with client.audio.speech.with_streaming_response.create(
-                model="gpt-4o-mini-tts",
-                voice="alloy",
-                input=reply
-            ) as response:
-                response.stream_to_file(speech_file)
-
-            st.audio(speech_file, format="audio/mp3")
+            audio_file = "nova_reply.mp3"
+            with open(audio_file, "wb") as f:
+                tts_resp = openai.Audio.create(
+                    model="gpt-3.5-turbo",  # adjust if using updated models
+                    input=reply
+                )
+                f.write(tts_resp)
+            st.audio(audio_file, format="audio/mp3")
         except Exception as e:
             st.warning(f"TTS failed: {e}")
 
