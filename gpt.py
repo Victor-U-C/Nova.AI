@@ -1,18 +1,18 @@
-# ====== API KEY ======
+# gpt.py - Nova AI Chat (new OpenAI SDK + multi-line chat input)
 import streamlit as st
 import os
-import openai
 import json
+from openai import OpenAI
 
-if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
-else:                                # Local environment
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-
-if not openai.api_key:
+# ====== API KEY / client ======
+api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+if not api_key:
     st.error("❌ No API key found. Please set OPENAI_API_KEY in Streamlit secrets or environment.")
+    st.stop()
 
-# ====== Glowing Dark Background & White Text ======
+client = OpenAI(api_key=api_key)
+
+# ====== CSS: Dark glowing background + white text + input styling ======
 st.markdown("""
 <style>
 .stApp {
@@ -33,38 +33,26 @@ st.markdown("""
 }
 
 /* Force all text to white */
-h1, h2, h3, h4, h5, h6, p, label, span, div, button, .stMarkdown, .stText {
-  color: white !important;
-}
+* { color: white !important; }
 
 /* Tabs text (Login / Sign up) */
-[data-baseweb="tab"] {
-  color: white !important;
-  font-weight: bold;
-}
-[data-baseweb="tab"] [data-testid="stMarkdownContainer"] p {
-  color: white !important;
-}
-
-/* Active tab underline */
-[data-baseweb="tab-highlight"] {
-  border-color: #00ffcc !important;
-}
+[data-baseweb="tab"] { color: white !important; font-weight: bold; }
+[data-baseweb="tab"] [data-testid="stMarkdownContainer"] p { color: white !important; }
 
 /* Input boxes */
-.stTextInput > div > div > input {
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
     background-color: #1e1e1e !important;
     color: white !important;
     border: 1px solid #00ffcc !important;
     border-radius: 10px;
     padding: 10px;
 }
-.stTextInput > div > div > input::placeholder {
-    color: #cccccc !important;
-}
-.stTextInput input[type="password"] {
-    background-color: #1e1e1e !important;
-    color: white !important;
+
+/* Placeholder text */
+.stTextInput > div > div > input::placeholder,
+.stTextArea > div > div > textarea::placeholder {
+    color: #bfbfbf !important;
 }
 
 /* Buttons */
@@ -75,12 +63,9 @@ h1, h2, h3, h4, h5, h6, p, label, span, div, button, .stMarkdown, .stText {
     border-radius: 8px;
     padding: 8px 20px;
     font-weight: bold;
-    transition: 0.3s;
+    transition: 0.12s transform;
 }
-.stButton button:hover {
-    background: linear-gradient(90deg, #0077ff, #00ffcc);
-    transform: scale(1.05);
-}
+.stButton button:hover { transform: scale(1.02); }
 
 /* Pulsing circle animation */
 @keyframes pulse {
@@ -89,17 +74,17 @@ h1, h2, h3, h4, h5, h6, p, label, span, div, button, .stMarkdown, .stText {
   100% { transform: scale(1); opacity: 0.6; }
 }
 .loading-circle {
-  width: 25px;
-  height: 25px;
-  margin: 20px auto;
+  width: 20px;
+  height: 20px;
+  margin: 12px auto;
   border-radius: 50%;
   background-color: #00ffcc;
-  animation: pulse 1.5s infinite;
+  animation: pulse 1.2s infinite;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ====== User DB ======
+# ====== User DB (safe load) ======
 USER_FILE = "users.json"
 
 def load_users():
@@ -107,8 +92,11 @@ def load_users():
         return {}
     try:
         with open(USER_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
+            data = f.read().strip()
+            if not data:
+                return {}
+            return json.loads(data)
+    except (json.JSONDecodeError, ValueError):
         return {}
 
 def save_users(users: dict):
@@ -144,7 +132,7 @@ if st.session_state["logged_in"]:
         st.session_state["logged_in"] = False
         st.session_state["username"] = ""
         st.session_state["chat_history"] = []
-        st.rerun()
+        st.experimental_rerun()
 
     st.sidebar.subheader("📜 Chat history (preview)")
     for msg in st.session_state["chat_history"][-10:]:
@@ -155,7 +143,6 @@ if st.session_state["logged_in"]:
 st.markdown("<h1 style='text-align:center;'>😁 Nova AI Chat</h1>", unsafe_allow_html=True)
 
 if not st.session_state["logged_in"]:
-    # ---- AUTH TABS ----
     login_tab, signup_tab = st.tabs(["🔑 Login", "📝 Sign up"])
 
     with login_tab:
@@ -169,7 +156,7 @@ if not st.session_state["logged_in"]:
                 if ok:
                     st.session_state["logged_in"] = True
                     st.session_state["username"] = u
-                    st.rerun()
+                    st.experimental_rerun()
 
     with signup_tab:
         with st.form("signup_form"):
@@ -186,52 +173,57 @@ if not st.session_state["logged_in"]:
                         st.success(msg)
                         st.session_state["logged_in"] = True
                         st.session_state["username"] = u2
-                        st.rerun()
+                        st.experimental_rerun()
                     else:
                         st.error(msg)
 
 else:
-    # ---- Chat UI ----
-    prompt = st.text_input("Ask Nova…")
+    # Use a multi-line text_area so Enter creates a newline.
+    # Instructions: Enter = newline, click Send to submit. (If you want Enter-to-send + Shift+Enter newline, I can add a custom component.)
+    prompt = st.text_area("Ask Nova… (press Enter for newline — click Send to submit)", height=120, key="chat_input")
     send = st.button("Send")
 
-    if send and prompt.strip():
-        # user message
+    if send and prompt and prompt.strip():
         st.session_state["chat_history"].append({"role": "user", "content": prompt})
 
         # show pulsing circle while thinking
         loader = st.empty()
         loader.markdown('<div class="loading-circle"></div>', unsafe_allow_html=True)
 
-        # OpenAI Chat
+        # Build messages: system prompt + chat history
+        messages = [{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
+        # ensure chat_history is in correct format (list of dicts)
+        messages += st.session_state["chat_history"]
+
+        # Chat (new OpenAI SDK)
         try:
-            resp = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
-                         + st.session_state["chat_history"]
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages
             )
-            reply = resp.choices[0].message["content"]
+            # extract reply
+            reply = resp.choices[0].message.content
         except Exception as e:
             reply = f"⚠️ Error: {e}"
 
-        loader.empty()  # remove the circle
+        loader.empty()  # remove loading indicator
 
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
 
-        # TTS
+        # TTS (new SDK) - uses tts-1 model and streaming-to-file
         try:
-            audio_file = "nova_reply.mp3"
-            with open(audio_file, "wb") as f:
-                tts_resp = openai.Audio.create(
-                    model="gpt-3.5-turbo",  # adjust if using updated models
-                    input=reply
-                )
-                f.write(tts_resp)
-            st.audio(audio_file, format="audio/mp3")
+            speech_file = "nova_reply.mp3"
+            with client.audio.speech.with_streaming_response.create(
+                model="tts-1",
+                voice="alloy",
+                input=reply
+            ) as response:
+                response.stream_to_file(speech_file)
+            st.audio(speech_file, format="audio/mp3")
         except Exception as e:
             st.warning(f"TTS failed: {e}")
 
-    # render chat
+    # render chat history (simple)
     for msg in st.session_state["chat_history"]:
         if msg["role"] == "user":
             st.markdown(f"🧑 **You:** {msg['content']}")
