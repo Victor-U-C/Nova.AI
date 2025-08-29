@@ -1,14 +1,16 @@
+# ====== API KEY ======
 import streamlit as st
-import json, os
+import os
 import openai
 
-# ====== API KEY ======
-# ✅ Option 1: safer way (use environment variable)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
+else:                                # Local environment
+    openai.api_key = os.getenv("OPENAI_API_KEY")
 
+if not openai.api_key:
+    st.error("❌ No API key found. Please set OPENAI_API_KEY in Streamlit secrets or environment.")
 
-# ✅ Option 2: direct (for testing only – replace with your real key!)
-# openai.api_key = "sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx"
 
 # ====== Glowing background ======
 st.markdown("""
@@ -185,4 +187,5 @@ else:
             st.markdown(f"🧑 **You:** {msg['content']}")
         else:
             st.markdown(f"🤖 **Nova:** {msg['content']}")
+
 
