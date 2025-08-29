@@ -1,16 +1,16 @@
-# ====== Nova AI Chat ======
+# ====== API KEY ======
 import streamlit as st
 import os
 import json
-import openai
+from openai import OpenAI
 
-# ====== API KEY ======
+# Create OpenAI client
 if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 else:                                # Local environment
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-if not openai.api_key:
+if not client.api_key:
     st.error("❌ No API key found. Please set OPENAI_API_KEY in Streamlit secrets or environment.")
 
 
@@ -60,11 +60,8 @@ def load_users():
         return {}
     try:
         with open(USER_FILE, "r", encoding="utf-8") as f:
-            data = f.read().strip()
-            if not data:   # empty file
-                return {}
-            return json.loads(data)
-    except (json.JSONDecodeError, ValueError):
+            return json.load(f)
+    except json.JSONDecodeError:
         return {}
 
 def save_users(users: dict):
@@ -164,12 +161,12 @@ else:
 
         # OpenAI Chat
         try:
-            resp = openai.ChatCompletion.create(
+            resp = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "system", "content": "You are Nova, a friendly AI assistant."}]
                          + st.session_state["chat_history"]
             )
-            reply = resp.choices[0].message["content"]
+            reply = resp.choices[0].message.content
         except Exception as e:
             reply = f"⚠️ Error: {e}"
 
@@ -177,16 +174,17 @@ else:
 
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
 
-        # OpenAI TTS (text-to-speech)
+        # OpenAI TTS (new API)
         try:
-            speech = openai.Audio.speech.create(
-                model="tts-1",
+            speech_file = "nova_reply.mp3"
+            with client.audio.speech.with_streaming_response.create(
+                model="gpt-4o-mini-tts",
                 voice="alloy",
                 input=reply
-            )
-            with open("nova_reply.mp3", "wb") as f:
-                f.write(speech.read())
-            st.audio("nova_reply.mp3", format="audio/mp3")
+            ) as response:
+                response.stream_to_file(speech_file)
+
+            st.audio(speech_file, format="audio/mp3")
         except Exception as e:
             st.warning(f"TTS failed: {e}")
 
@@ -196,4 +194,3 @@ else:
             st.markdown(f"🧑 **You:** {msg['content']}")
         else:
             st.markdown(f"🤖 **Nova:** {msg['content']}")
-
