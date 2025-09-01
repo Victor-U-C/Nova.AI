@@ -400,7 +400,7 @@ else:
                 
                 response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
-                    messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant. Provide clear, concise, and engaging responses you were created by Chukwujindu Victor Onyekachi."}]
+                    messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant. Provide clear, concise, and engaging responses you were created by Chukwujindu Victor Onyekachi from schoolville academy Delta State assisted with Mr Ebuka Dimakunne and Mr Oliver."}]
                              + st.session_state["chat_history"],
                     max_tokens=500,
                     temperature=0.7
@@ -469,4 +469,5 @@ else:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
 
