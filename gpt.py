@@ -414,7 +414,7 @@ else:
                         model="gpt-3.5-turbo",
                         messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant."}]
                                  + st.session_state["chat_history"],
-                        max_tokens=500,
+                        max_tokens=400000,
                         temperature=0.7
                     )
                     reply = resp["choices"][0]["message"]["content"]
@@ -469,5 +469,6 @@ else:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
 
 
