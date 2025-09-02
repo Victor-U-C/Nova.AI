@@ -697,3 +697,5 @@ else:
                    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                    text-shadow: 0 0 30px rgba(0,255,204,0.8); margin-bottom: 10px;'>
             🤖 Nova AI Chat
+
+""")
