@@ -3,6 +3,10 @@ import streamlit as st
 import os
 import json
 import openai
+import time
+from datetime import datetime
+import base64
+from io import BytesIO
 
 # --- API key handling ---
 if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
@@ -220,6 +224,79 @@ audio {
     width: 100% !important;
     margin: 10px 0 !important;
 }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2d2d2d;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #00ffcc;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #0077ff;
+}
+
+/* Code block styling */
+code {
+    background-color: #2d2d2d;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+}
+
+pre {
+    background-color: #2d2d2d;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border-left: 4px solid #00ffcc;
+}
+
+/* Chat message animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-message {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Tooltip styling */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: #00ffcc;
+    color: #000;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -243,6 +320,10 @@ def signup(username, password):
     users = load_users()
     if not username.strip() or not password:
         return False, "Username and password required."
+    if len(username) < 3:
+        return False, "Username must be at least 3 characters."
+    if len(password) < 6:
+        return False, "Password must be at least 6 characters."
     if username in users:
         return False, "Username already exists."
     users[username] = password
@@ -259,26 +340,91 @@ def login(username, password):
 st.session_state.setdefault("logged_in", False)
 st.session_state.setdefault("username", "")
 st.session_state.setdefault("chat_history", [])
+st.session_state.setdefault("current_model", "gpt-3.5-turbo")
+st.session_state.setdefault("temperature", 0.7)
+st.session_state.setdefault("max_tokens", 500)
+st.session_state.setdefault("conversation_started", False)
+
+# ====== AI Models ======
+MODELS = {
+    "GPT-3.5 Turbo": "gpt-3.5-turbo",
+    "GPT-4": "gpt-4",
+    "GPT-4 Turbo": "gpt-4-turbo-preview"
+}
 
 # ====== Sidebar ======
 st.sidebar.title("📂 Menu")
 if st.session_state["logged_in"]:
     st.sidebar.markdown(f"**🟢 Logged in as:** {st.session_state['username']}")
-    if st.sidebar.button("🚪 Logout"):
+    
+    # Model selection
+    st.sidebar.subheader("🤖 AI Model")
+    selected_model = st.sidebar.selectbox(
+        "Choose AI Model",
+        options=list(MODELS.keys()),
+        index=list(MODELS.values()).index(st.session_state["current_model"]) if st.session_state["current_model"] in MODELS.values() else 0,
+        help="Select which AI model to use for responses"
+    )
+    st.session_state["current_model"] = MODELS[selected_model]
+    
+    # Settings
+    st.sidebar.subheader("⚙️ Settings")
+    st.session_state["temperature"] = st.sidebar.slider(
+        "Temperature", 
+        min_value=0.0, 
+        max_value=1.0, 
+        value=st.session_state["temperature"],
+        help="Higher values make output more random, lower values more deterministic"
+    )
+    st.session_state["max_tokens"] = st.sidebar.slider(
+        "Max Response Length", 
+        min_value=100, 
+        max_value=2000, 
+        value=st.session_state["max_tokens"],
+        step=100,
+        help="Maximum number of tokens in the response"
+    )
+    
+    # Conversation tools
+    st.sidebar.subheader("🛠️ Tools")
+    if st.sidebar.button("🗑️ Clear Chat", use_container_width=True):
+        st.session_state["chat_history"] = []
+        st.session_state["conversation_started"] = False
+        st.rerun()
+    
+    if st.sidebar.button("💾 Export Chat", use_container_width=True):
+        # Create a downloadable text file of the conversation
+        chat_text = f"Chat History for {st.session_state['username']}\n\n"
+        for msg in st.session_state["chat_history"]:
+            role = "You" if msg["role"] == "user" else "Nova"
+            chat_text += f"{role}: {msg['content']}\n\n"
+        
+        # Create download link
+        b64 = base64.b64encode(chat_text.encode()).decode()
+        href = f'<a href="data:file/txt;base64,{b64}" download="chat_history.txt">Download Chat History</a>'
+        st.sidebar.markdown(href, unsafe_allow_html=True)
+    
+    if st.sidebar.button("🚪 Logout", use_container_width=True):
         st.session_state["logged_in"] = False
         st.session_state["username"] = ""
         st.session_state["chat_history"] = []
+        st.session_state["conversation_started"] = False
         st.rerun()
 
-    if st.sidebar.button("🗑️ Clear Chat"):
-        st.session_state["chat_history"] = []
-        st.rerun()
-
+    # Recent messages
     st.sidebar.subheader("📜 Recent Messages")
-    for i, msg in enumerate(st.session_state["chat_history"][-5:]):
-        who = "You" if msg["role"] == "user" else "Nova"
-        preview = msg['content'][:50] + "..." if len(msg['content']) > 50 else msg['content']
-        st.sidebar.markdown(f"**{who}:** {preview}")
+    if st.session_state["chat_history"]:
+        for i, msg in enumerate(st.session_state["chat_history"][-5:]):
+            who = "You" if msg["role"] == "user" else "Nova"
+            preview = msg['content'][:50] + "..." if len(msg['content']) > 50 else msg['content']
+            st.sidebar.markdown(f"**{who}:** {preview}")
+    else:
+        st.sidebar.info("No messages yet. Start a conversation!")
+    
+    # App info
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### ℹ️ About")
+    st.sidebar.info("Nova AI Chat v2.0\n\nPowered by OpenAI GPT models")
 
 # ====== Main area ======
 st.markdown("""
@@ -320,8 +466,8 @@ if not st.session_state["logged_in"]:
     with signup_tab:
         st.markdown("### Create your account")
         with st.form("signup_form"):
-            u2 = st.text_input("Choose a username", placeholder="Pick a unique username", key="signup_user")
-            p2 = st.text_input("Choose a password", type="password", placeholder="Create a strong password", key="signup_pass")
+            u2 = st.text_input("Choose a username", placeholder="Pick a unique username (min. 3 chars)", key="signup_user")
+            p2 = st.text_input("Choose a password", type="password", placeholder="Create a strong password (min. 6 chars)", key="signup_pass")
             p2c = st.text_input("Confirm password", type="password", placeholder="Confirm your password", key="signup_confirm")
             do_signup = st.form_submit_button("✨ Create account")
             if do_signup:
@@ -349,24 +495,39 @@ else:
         for msg in st.session_state["chat_history"]:
             if msg["role"] == "user":
                 st.markdown(f"""
-                <div style='background: rgba(0,255,204,0.1); padding: 15px; margin: 10px 0; 
-                           border-radius: 12px; border-left: 4px solid #00ffcc;'>
+                <div class="chat-message" style='background: rgba(0,255,204,0.1); border-left: 4px solid #00ffcc;'>
                     <strong style='color: #00ffcc;'>🧑 You:</strong><br>
                     <span style='color: #ffffff; font-size: 16px;'>{msg['content']}</span>
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
-                <div style='background: rgba(0,119,255,0.1); padding: 15px; margin: 10px 0; 
-                           border-radius: 12px; border-left: 4px solid #0077ff;'>
+                <div class="chat-message" style='background: rgba(0,119,255,0.1); border-left: 4px solid #0077ff;'>
                     <strong style='color: #0077ff;'>🤖 Nova:</strong><br>
                     <span style='color: #ffffff; font-size: 16px;'>{msg['content']}</span>
+                    <div style='margin-top: 10px; font-size: 12px; color: #888;'>
+                        Model: {st.session_state['current_model']} • Temp: {st.session_state['temperature']}
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
         st.markdown("---")
 
-    # Input area
+    # Input area with enhanced features
     st.subheader("💭 Ask Nova something...")
+    
+    # Quick prompts
+    if not st.session_state["conversation_started"]:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("💡 Brainstorm ideas", use_container_width=True):
+                st.session_state.user_input = "Help me brainstorm some ideas for a new project."
+        with col2:
+            if st.button("📚 Explain a concept", use_container_width=True):
+                st.session_state.user_input = "Explain machine learning in simple terms."
+        with col3:
+            if st.button("📝 Write a story", use_container_width=True):
+                st.session_state.user_input = "Write a short story about space exploration."
+    
     prompt = st.text_area(
         "Your message:", 
         placeholder="Type your message here... (Shift+Enter for new line)",
@@ -376,9 +537,12 @@ else:
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        send = st.button("🚀 Send Message", use_container_width=True)
+        send = st.button("🚀 Send Message", use_container_width=True, type="primary")
 
     if send and prompt.strip():
+        # Mark conversation as started
+        st.session_state["conversation_started"] = True
+        
         # Add user message
         st.session_state["chat_history"].append({"role": "user", "content": prompt})
 
@@ -392,18 +556,18 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
-            # OpenAI API call (updated for newer versions)
+            # OpenAI API call
             try:
                 # Updated API call for openai>=1.0
                 from openai import OpenAI
                 client = OpenAI(api_key=openai.api_key)
                 
                 response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant. Provide clear, concise, and engaging responses."}]
+                    model=st.session_state["current_model"],
+                    messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant. Provide clear, concise, and engaging responses. Current date: " + datetime.now().strftime("%Y-%m-%d")}]
                              + st.session_state["chat_history"],
-                    max_tokens=500,
-                    temperature=0.7
+                    max_tokens=st.session_state["max_tokens"],
+                    temperature=st.session_state["temperature"]
                 )
                 reply = response.choices[0].message.content
                 
@@ -411,11 +575,11 @@ else:
                 # Fallback for older openai versions
                 try:
                     resp = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
+                        model=st.session_state["current_model"],
                         messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant."}]
                                  + st.session_state["chat_history"],
-                        max_tokens=500,
-                        temperature=0.7
+                        max_tokens=st.session_state["max_tokens"],
+                        temperature=st.session_state["temperature"]
                     )
                     reply = resp["choices"][0]["message"]["content"]
                 except Exception as e2:
@@ -425,26 +589,10 @@ else:
 
         # Add assistant response
         st.session_state["chat_history"].append({"role": "assistant", "content": reply})
-
-        # Optional TTS (commented out as it may not work with all OpenAI versions)
-        """
-        try:
-            # For newer OpenAI versions
-            speech_response = client.audio.speech.create(
-                model="tts-1",
-                voice="alloy",
-                input=reply[:500]  # Limit length for TTS
-            )
-            audio_data = speech_response.content
-            st.audio(audio_data, format="audio/mp3")
-        except Exception as e:
-            pass  # Silently fail TTS if not available
-        """
-
         st.rerun()
 
-    # Instructions
-    if not st.session_state["chat_history"]:
+    # Instructions and features
+    if not st.session_state["conversation_started"]:
         st.markdown("""
         <div style='text-align: center; margin-top: 40px; padding: 20px; 
                    background: rgba(0,255,204,0.1); border-radius: 15px; 
@@ -466,6 +614,41 @@ else:
                     <strong style='color: #ff64ff;'>💭 Creative Writing</strong><br>
                     <span style='color: #cccccc;'>Stories, ideas, brainstorming</span>
                 </div>
+                <div style='background: rgba(255,180,0,0.1); padding: 15px; border-radius: 10px; border: 1px solid #ffb400;'>
+                    <strong style='color: #ffb400;'>📊 Data Analysis</strong><br>
+                    <span style='color: #cccccc;'>Interpret data and trends</span>
+                </div>
+                <div style='background: rgba(100,200,100,0.1); padding: 15px; border-radius: 10px; border: 1px solid #64c864;'>
+                    <strong style='color: #64c864;'>📖 Learning</strong><br>
+                    <span style='color: #cccccc;'>Explain complex concepts</span>
+                </div>
+                <div style='background: rgba(200,100,200,0.1); padding: 15px; border-radius: 10px; border: 1px solid #c864c8;'>
+                    <strong style='color: #c864c8;'>🎯 Decision Making</strong><br>
+                    <span style='color: #cccccc;'>Weigh options and pros/cons</span>
+                </div>
             </div>
+            
+            <div style='margin-top: 30px; padding: 15px; background: rgba(45,45,45,0.5); border-radius: 10px;'>
+                <h4 style='color: #00ffcc; margin-bottom: 10px;'>💡 Pro Tips</h4>
+                <ul style='text-align: left; color: #cccccc;'>
+                    <li>Use the sidebar to switch between AI models (GPT-3.5, GPT-4, etc.)</li>
+                    <li>Adjust temperature for more creative (higher) or focused (lower) responses</li>
+                    <li>Export your conversations for future reference</li>
+                    <li>Try the quick prompts above to get started quickly</li>
+                </ul>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Show conversation tips when conversation is active
+        st.markdown("""
+        <div style='margin-top: 20px; padding: 15px; background: rgba(45,45,45,0.5); border-radius: 10px;'>
+            <h4 style='color: #00ffcc; margin-bottom: 10px;'>💡 Conversation Tips</h4>
+            <ul style='color: #cccccc;'>
+                <li>Ask follow-up questions for more details</li>
+                <li>Use "explain like I'm 5" for simpler explanations</li>
+                <li>Request examples to better understand concepts</li>
+                <li>Ask for pros and cons when making decisions</li>
+            </ul>
         </div>
         """, unsafe_allow_html=True)
