@@ -3,17 +3,15 @@ import streamlit as st
 import os, json, hashlib, base64, tempfile
 from typing import Tuple
 import openai
-import plotly.graph_objects as go
 
 # ====== API KEY ======
 if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
     client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-else:                                # Local environment
+else:                                # Local
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ====== FILES ======
 USER_DATA_FILE = "users.json"
-STATS_FILE = "stats.json"
 
 # ====== PASSWORD HELPERS ======
 def hash_password(password: str, salt: str = None) -> Tuple[str, str]:
@@ -70,95 +68,104 @@ def tts_speak(text, voice):
     except Exception as e:
         st.error(f"❌ TTS Error: {e}")
 
-# ====== BACKGROUND ======
-def set_bg(image_url):
+# ====== BACKGROUND & STYLE ======
+def set_bg():
     st.markdown(
-        f"""
+        """
         <style>
-        .stApp {{
-            background-image: url("{image_url}");
+        .stApp {
+            background-image: url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
-        }}
-        .chat-bubble-user {{
+            color: #fff;
+        }
+        .chat-bubble-user {
             background-color: rgba(0, 123, 255, 0.8);
             color: white;
             padding: 10px;
             border-radius: 15px;
             margin: 5px;
             max-width: 70%;
-        }}
-        .chat-bubble-ai {{
-            background-color: rgba(255, 255, 255, 0.8);
+        }
+        .chat-bubble-ai {
+            background-color: rgba(255, 255, 255, 0.85);
+            color: black;
             padding: 10px;
             border-radius: 15px;
             margin: 5px;
             max-width: 70%;
-        }}
+        }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-# Ocean background
-set_bg("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
+set_bg()
 
 # ====== SESSION STATE ======
 if "page" not in st.session_state:
-    st.session_state["page"] = "login"
+    st.session_state["page"] = "auth"
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
-if "username" not in st.session_state:
-    st.session_state["username"] = None
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
+if "username" not in st.session_state:
+    st.session_state["username"] = ""
 
-# ====== LOGIN / SIGNUP PAGE ======
-def login_signup_page():
-    st.title("🔐 Welcome to Nova AI Chat")
+# ====== AUTH PAGE ======
+def auth_page():
+    st.markdown("<h1 style='text-align:center;'>🔐 Nova AI Chat</h1>", unsafe_allow_html=True)
     users = load_users()
 
-    tab1, tab2 = st.tabs(["Login", "Signup"])
+    login_tab, signup_tab = st.tabs(["🔑 Login", "📝 Sign up"])
 
-    with tab1:
-        uname = st.text_input("Username", key="login_user")
-        pwd = st.text_input("Password", type="password", key="login_pass")
-        if st.button("Login"):
-            if uname not in users:
-                st.error("❌ Username does not exist.")
-            else:
-                stored_pwd = users[uname]["password"]
-                salt = users[uname]["salt"]
-                if verify_password(stored_pwd, pwd, salt):
-                    st.session_state["logged_in"] = True
-                    st.session_state["username"] = uname
-                    st.session_state["page"] = "app"
-                    st.success("✅ Login successful!")
+    with login_tab:
+        with st.form("login_form"):
+            uname = st.text_input("Username")
+            pwd = st.text_input("Password", type="password")
+            if st.form_submit_button("🚀 Log in"):
+                if uname not in users:
+                    st.error("❌ Username does not exist.")
                 else:
-                    st.error("❌ Incorrect password.")
+                    stored_pwd = users[uname]["password"]
+                    salt = users[uname]["salt"]
+                    if verify_password(stored_pwd, pwd, salt):
+                        st.session_state["logged_in"] = True
+                        st.session_state["username"] = uname
+                        st.session_state["page"] = "chat"
+                        st.rerun()
+                    else:
+                        st.error("❌ Incorrect password.")
 
-    with tab2:
-        uname_new = st.text_input("New Username", key="signup_user")
-        pwd_new = st.text_input("New Password", type="password", key="signup_pass")
-        if st.button("Signup"):
-            if uname_new in users:
-                st.error("❌ Username already exists.")
-            else:
-                hashed_pwd, salt = hash_password(pwd_new)
-                users[uname_new] = {"password": hashed_pwd, "salt": salt}
-                save_users(users)
-                st.success("✅ Signup successful! Please log in.")
+    with signup_tab:
+        with st.form("signup_form"):
+            uname_new = st.text_input("Choose a username")
+            pwd_new = st.text_input("Password", type="password")
+            pwd_confirm = st.text_input("Confirm Password", type="password")
+            if st.form_submit_button("✨ Sign up"):
+                if uname_new in users:
+                    st.error("❌ Username already exists.")
+                elif not uname_new or not pwd_new or not pwd_confirm:
+                    st.error("❌ Please fill all fields.")
+                elif pwd_new != pwd_confirm:
+                    st.error("❌ Passwords do not match.")
+                else:
+                    hashed_pwd, salt = hash_password(pwd_new)
+                    users[uname_new] = {"password": hashed_pwd, "salt": salt}
+                    save_users(users)
+                    st.success("✅ Signup successful! Please login now.")
 
-# ====== MAIN APP PAGE ======
-def main_app():
+# ====== CHAT PAGE ======
+def chat_page():
     st.sidebar.title("⚙️ Settings")
     st.sidebar.success(f"🟢 Logged in as: {st.session_state['username']}")
 
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("🚪 Logout"):
         st.session_state["logged_in"] = False
-        st.session_state["username"] = None
-        st.session_state["page"] = "login"
+        st.session_state["username"] = ""
+        st.session_state["page"] = "auth"
+        st.rerun()
 
     model = st.sidebar.selectbox("Model", ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-3.5-turbo"])
     max_tokens = st.sidebar.slider("Max Tokens", 100, 4000, 1000)
@@ -192,17 +199,8 @@ def main_app():
             st.markdown(f"<div class='chat-bubble-ai'>🤖 {response_content}</div>", unsafe_allow_html=True)
             tts_speak(response_content, voice)
 
-    st.header("📊 Usage Statistics")
-    stats = {}
-    if stats:
-        fig = go.Figure([go.Bar(x=list(stats.keys()), y=list(stats.values()))])
-        fig.update_layout(title="Usage")
-        st.plotly_chart(fig)
-    else:
-        st.info("No usage data yet.")
-
 # ====== PAGE ROUTER ======
-if st.session_state["page"] == "login":
-    login_signup_page()
-else:
-    main_app()
+if st.session_state["page"] == "auth":
+    auth_page()
+elif st.session_state["page"] == "chat":
+    chat_page()
