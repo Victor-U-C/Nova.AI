@@ -1,15 +1,11 @@
 # ====== IMPORTS ======
 import streamlit as st
-import os
-import json
-import hashlib
-import base64
+import os, json, hashlib, base64, tempfile
 from typing import Tuple
 import openai
 import plotly.graph_objects as go
-import tempfile
 
-# ====== API KEY HANDLING ======
+# ====== API KEY ======
 if "OPENAI_API_KEY" in st.secrets:   # Streamlit Cloud
     client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 else:                                # Local environment
@@ -19,17 +15,12 @@ else:                                # Local environment
 USER_DATA_FILE = "users.json"
 STATS_FILE = "stats.json"
 
-# ====== HELPERS ======
+# ====== PASSWORD HELPERS ======
 def hash_password(password: str, salt: str = None) -> Tuple[str, str]:
-    import hashlib, os, base64
     if salt is None:
-        salt = hashlib.sha256(os.urandom(60)).hexdigest()  # always string
-    
+        salt = hashlib.sha256(os.urandom(60)).hexdigest()
     pwdhash = hashlib.pbkdf2_hmac(
-        "sha256",
-        password.encode("utf-8"),
-        salt.encode("utf-8"),
-        100000
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000
     )
     pwdhash = base64.b64encode(pwdhash).decode("ascii")
     return pwdhash, salt
@@ -48,20 +39,6 @@ def save_users(users):
     with open(USER_DATA_FILE, "w") as f:
         json.dump(users, f, indent=4)
 
-def load_stats():
-    if os.path.exists(STATS_FILE):
-        with open(STATS_FILE, "r") as f:
-            return json.load(f)
-    return {
-        "daily_usage": {},
-        "model_usage": {},
-        "monthly_usage": {}
-    }
-
-def save_stats(stats):
-    with open(STATS_FILE, "w") as f:
-        json.dump(stats, f, indent=4)
-
 # ====== OPENAI CALL ======
 def call_openai_api(model, messages, max_tokens, temperature, user):
     try:
@@ -79,7 +56,7 @@ def call_openai_api(model, messages, max_tokens, temperature, user):
         st.error(f"❌ OpenAI API Error: {e}")
         return None
 
-# ====== TEXT TO SPEECH ======
+# ====== TTS ======
 def tts_speak(text, voice):
     try:
         with client.audio.speech.with_streaming_response.create(
@@ -104,24 +81,32 @@ def set_bg(image_url):
             background-position: center;
             background-attachment: fixed;
         }}
-        .stChatMessage, .stMarkdown {{
+        .chat-bubble-user {{
+            background-color: rgba(0, 123, 255, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 15px;
+            margin: 5px;
+            max-width: 70%;
+        }}
+        .chat-bubble-ai {{
             background-color: rgba(255, 255, 255, 0.8);
             padding: 10px;
-            border-radius: 12px;
-            margin-bottom: 8px;
+            border-radius: 15px;
+            margin: 5px;
+            max-width: 70%;
         }}
         </style>
         """,
         unsafe_allow_html=True
     )
 
-# Ocean background 🌊
+# Ocean background
 set_bg("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
 
-# ====== STREAMLIT APP ======
-st.set_page_config(page_title="Nova AI Chat", page_icon="🤖", layout="wide")
-
-# --- Initialize Session State ---
+# ====== SESSION STATE ======
+if "page" not in st.session_state:
+    st.session_state["page"] = "login"
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
 if "username" not in st.session_state:
@@ -129,78 +114,69 @@ if "username" not in st.session_state:
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
-# ====== LOGIN & SIGNUP ======
-users = load_users()
+# ====== LOGIN / SIGNUP PAGE ======
+def login_signup_page():
+    st.title("🔐 Welcome to Nova AI Chat")
+    users = load_users()
 
-def signup(username, password):
-    if username in users:
-        return False, "❌ Username already exists."
-    hashed_pwd, salt = hash_password(password)
-    users[username] = {"password": hashed_pwd, "salt": salt}
-    save_users(users)
-    return True, "✅ Signup successful!"
+    tab1, tab2 = st.tabs(["Login", "Signup"])
 
-def login(username, password):
-    if username not in users:
-        return False, "❌ Username does not exist."
-    stored_pwd = users[username]["password"]
-    salt = users[username]["salt"]
-    if verify_password(stored_pwd, password, salt):
-        return True, "✅ Login successful!"
-    else:
-        return False, "❌ Incorrect password."
-
-# ====== SIDEBAR ======
-with st.sidebar:
-    st.header("🔐 User Login")
-    if not st.session_state["logged_in"]:
-        tab1, tab2 = st.tabs(["Login", "Signup"])
-        with tab1:
-            uname = st.text_input("Username", key="login_user")
-            pwd = st.text_input("Password", type="password", key="login_pass")
-            if st.button("Login"):
-                success, msg = login(uname, pwd)
-                st.info(msg)
-                if success:
+    with tab1:
+        uname = st.text_input("Username", key="login_user")
+        pwd = st.text_input("Password", type="password", key="login_pass")
+        if st.button("Login"):
+            if uname not in users:
+                st.error("❌ Username does not exist.")
+            else:
+                stored_pwd = users[uname]["password"]
+                salt = users[uname]["salt"]
+                if verify_password(stored_pwd, pwd, salt):
                     st.session_state["logged_in"] = True
                     st.session_state["username"] = uname
-        with tab2:
-            uname_new = st.text_input("New Username", key="signup_user")
-            pwd_new = st.text_input("New Password", type="password", key="signup_pass")
-            if st.button("Signup"):
-                success, msg = signup(uname_new, pwd_new)
-                st.info(msg)
-    else:
-        st.success(f"🟢 Logged in as: {st.session_state['username']}")
-        if st.button("Logout"):
-            st.session_state["logged_in"] = False
-            st.session_state["username"] = None
+                    st.session_state["page"] = "app"
+                    st.success("✅ Login successful!")
+                else:
+                    st.error("❌ Incorrect password.")
 
-    # --- Model Settings ---
-    st.header("⚙️ Settings")
-    model = st.selectbox("Model", ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-3.5-turbo"])
-    max_tokens = st.slider("Max Tokens", 100, 4000, 1000)
-    temperature = st.slider("Temperature", 0.0, 1.0, 0.7)
-    voice = st.selectbox("Voice", ["alloy", "verse", "lumen"])
+    with tab2:
+        uname_new = st.text_input("New Username", key="signup_user")
+        pwd_new = st.text_input("New Password", type="password", key="signup_pass")
+        if st.button("Signup"):
+            if uname_new in users:
+                st.error("❌ Username already exists.")
+            else:
+                hashed_pwd, salt = hash_password(pwd_new)
+                users[uname_new] = {"password": hashed_pwd, "salt": salt}
+                save_users(users)
+                st.success("✅ Signup successful! Please log in.")
 
-# ====== MAIN CHAT AREA ======
-st.title("😁 Nova AI Chat")
+# ====== MAIN APP PAGE ======
+def main_app():
+    st.sidebar.title("⚙️ Settings")
+    st.sidebar.success(f"🟢 Logged in as: {st.session_state['username']}")
 
-# Show history
-for role, msg in st.session_state["chat_history"]:
-    if role == "user":
-        st.markdown(f"🧑 **You:** {msg}")
-    else:
-        st.markdown(f"🤖 **Nova:** {msg}")
+    if st.sidebar.button("Logout"):
+        st.session_state["logged_in"] = False
+        st.session_state["username"] = None
+        st.session_state["page"] = "login"
 
-# User input
-user_msg = st.chat_input("Ask Nova…")
-if user_msg:
-    if not st.session_state["logged_in"]:
-        st.warning("🔐 Please login first to chat.")
-    else:
+    model = st.sidebar.selectbox("Model", ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-3.5-turbo"])
+    max_tokens = st.sidebar.slider("Max Tokens", 100, 4000, 1000)
+    temperature = st.sidebar.slider("Temperature", 0.0, 1.0, 0.7)
+    voice = st.sidebar.selectbox("Voice", ["alloy", "verse", "lumen"])
+
+    st.title("😁 Nova AI Chat")
+
+    for role, msg in st.session_state["chat_history"]:
+        if role == "user":
+            st.markdown(f"<div class='chat-bubble-user'>🧑 {msg}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div class='chat-bubble-ai'>🤖 {msg}</div>", unsafe_allow_html=True)
+
+    user_msg = st.chat_input("Ask Nova…")
+    if user_msg:
         st.session_state["chat_history"].append(("user", user_msg))
-        st.markdown(f"🧑 **You:** {user_msg}")
+        st.markdown(f"<div class='chat-bubble-user'>🧑 {user_msg}</div>", unsafe_allow_html=True)
 
         result = call_openai_api(
             model,
@@ -213,15 +189,20 @@ if user_msg:
         if result:
             response_content, tokens_used = result
             st.session_state["chat_history"].append(("assistant", response_content))
-            st.markdown(f"🤖 **Nova:** {response_content}")
+            st.markdown(f"<div class='chat-bubble-ai'>🤖 {response_content}</div>", unsafe_allow_html=True)
             tts_speak(response_content, voice)
 
-# ====== STATISTICS ======
-st.header("📊 Usage Statistics")
-stats = load_stats()
-if stats.get("daily_usage"):
-    fig = go.Figure([go.Bar(x=list(stats["daily_usage"].keys()), y=list(stats["daily_usage"].values()))])
-    fig.update_layout(title="Daily Usage")
-    st.plotly_chart(fig)
+    st.header("📊 Usage Statistics")
+    stats = {}
+    if stats:
+        fig = go.Figure([go.Bar(x=list(stats.keys()), y=list(stats.values()))])
+        fig.update_layout(title="Usage")
+        st.plotly_chart(fig)
+    else:
+        st.info("No usage data yet.")
+
+# ====== PAGE ROUTER ======
+if st.session_state["page"] == "login":
+    login_signup_page()
 else:
-    st.info("No usage data yet.")
+    main_app()
