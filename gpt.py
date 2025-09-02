@@ -7,7 +7,6 @@ import base64
 from typing import Tuple
 import openai
 import plotly.graph_objects as go
-from datetime import datetime
 import tempfile
 
 # ====== API KEY HANDLING ======
@@ -22,6 +21,7 @@ STATS_FILE = "stats.json"
 
 # ====== HELPERS ======
 def hash_password(password: str, salt: str = None) -> Tuple[str, str]:
+    import hashlib, os, base64
     if salt is None:
         salt = hashlib.sha256(os.urandom(60)).hexdigest()  # always string
     
@@ -93,6 +93,31 @@ def tts_speak(text, voice):
     except Exception as e:
         st.error(f"❌ TTS Error: {e}")
 
+# ====== BACKGROUND ======
+def set_bg(image_url):
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url("{image_url}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        .stChatMessage, .stMarkdown {{
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Ocean background 🌊
+set_bg("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
+
 # ====== STREAMLIT APP ======
 st.set_page_config(page_title="Nova AI Chat", page_icon="🤖", layout="wide")
 
@@ -162,8 +187,7 @@ with st.sidebar:
 st.title("😁 Nova AI Chat")
 
 # Show history
-for chat in st.session_state["chat_history"]:
-    role, msg = chat
+for role, msg in st.session_state["chat_history"]:
     if role == "user":
         st.markdown(f"🧑 **You:** {msg}")
     else:
@@ -171,25 +195,26 @@ for chat in st.session_state["chat_history"]:
 
 # User input
 user_msg = st.chat_input("Ask Nova…")
-if user_msg and st.session_state["logged_in"]:
-    st.session_state["chat_history"].append(("user", user_msg))
-    st.markdown(f"🧑 **You:** {user_msg}")
+if user_msg:
+    if not st.session_state["logged_in"]:
+        st.warning("🔐 Please login first to chat.")
+    else:
+        st.session_state["chat_history"].append(("user", user_msg))
+        st.markdown(f"🧑 **You:** {user_msg}")
 
-    result = call_openai_api(
-        model,
-        [{"role": "user", "content": user_msg}],
-        max_tokens,
-        temperature,
-        st.session_state["username"]
-    )
+        result = call_openai_api(
+            model,
+            [{"role": "user", "content": user_msg}],
+            max_tokens,
+            temperature,
+            st.session_state["username"]
+        )
 
-    if result:
-        response_content, tokens_used = result
-        st.session_state["chat_history"].append(("assistant", response_content))
-        st.markdown(f"🤖 **Nova:** {response_content}")
-
-        # Speak response
-        tts_speak(response_content, voice)
+        if result:
+            response_content, tokens_used = result
+            st.session_state["chat_history"].append(("assistant", response_content))
+            st.markdown(f"🤖 **Nova:** {response_content}")
+            tts_speak(response_content, voice)
 
 # ====== STATISTICS ======
 st.header("📊 Usage Statistics")
