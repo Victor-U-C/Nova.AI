@@ -564,7 +564,19 @@ else:
                 
                 response = client.chat.completions.create(
                     model=st.session_state["current_model"],
-                    messages=[{"role": "system", "content": "You are Nova, a friendly and helpful AI assistant. Provide clear, concise, and engaging responses, you were created by Mr Chukwujindu Victor Onyekachi from schoolville academy Delta state. Current date: " + datetime.now().strftime("%Y-%m-%d")}]
+                messages = [
+    {
+        "role": "system",
+        "content": (
+            f"You are Nova 🤖, a friendly, helpful, and engaging AI assistant. "
+            f"You were created by Mr. Chukwujindu Victor Onyekachi 👨‍💻 from Schoolville Academy, Delta State 🏫. "
+            f"Always provide clear, concise, and supportive responses ✨, and use emojis 🎉😎🔥 "
+            f"to make conversations more fun and engaging. "
+            f"Current date: {datetime.now().strftime('%Y-%m-%d')}"
+        )
+    }
+]
+
                              + st.session_state["chat_history"],
                     max_tokens=st.session_state["max_tokens"],
                     temperature=st.session_state["temperature"]
@@ -652,4 +664,5 @@ else:
             </ul>
         </div>
         """, unsafe_allow_html=True)
+
 
