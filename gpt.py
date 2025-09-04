@@ -151,32 +151,27 @@ def save_chat(username: str, chat_history):
 st.markdown(
     """
     <style>
-    /* ====== Custom Dark Theme Fixes ====== */
+    /* ====== GLOBAL APP BACKGROUND ====== */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(180deg, #0f0f0f, #1a1a1a) !important;
+        color: #FFFFFF !important;
+    }
 
-    /* Sidebar background */
+    /* ====== SIDEBAR ====== */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
+        background: linear-gradient(180deg, #141414, #1f1f1f);
         color: white;
+        border-right: 1px solid #333333;
     }
 
-    /* Chat bubbles */
-    .user-bubble {
-        background-color: #2c2c2c;
-        color: #ffffff;
-        padding: 8px 12px;
-        border-radius: 12px;
-        margin: 4px 0;
+    /* Sidebar headers */
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] label {
+        color: #FFFFFF !important;
     }
 
-    .ai-bubble {
-        background-color: #1e1e1e;
-        color: #00ffcc;
-        padding: 8px 12px;
-        border-radius: 12px;
-        margin: 4px 0;
-    }
-
-    /* Fix text input + selectbox in dark theme */
+    /* ====== INPUTS (Text + Select) ====== */
     .stTextInput > div > div > input,
     .stSelectbox > div > div > div {
         background-color: #1E1E1E !important;
@@ -187,12 +182,66 @@ st.markdown(
     }
 
     .stSelectbox > div > div > div > div {
+        color: #FFFFFF !important;  /* dropdown menu items */
+    }
+
+    /* ====== SLIDERS ====== */
+    [data-baseweb="slider"] {
+        color: #00ffcc !important;
+    }
+    [data-baseweb="slider"] > div {
+        background: #00ffcc !important;
+    }
+    [role="slider"] {
+        background: #00ffcc !important;
+        border: 2px solid #00ffaa !important;
+    }
+
+    /* ====== CHAT MESSAGES ====== */
+    [data-testid="stMarkdownContainer"] {
         color: #FFFFFF !important;
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    /* User bubble */
+    .user-bubble {
+        background-color: #2c2c2c;
+        color: #ffffff;
+        padding: 10px 14px;
+        border-radius: 12px;
+        margin: 6px 0;
+        max-width: 80%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    /* AI bubble */
+    .ai-bubble {
+        background-color: #1e1e1e;
+        color: #00ffcc;
+        padding: 10px 14px;
+        border-radius: 12px;
+        margin: 6px 0;
+        max-width: 80%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    /* ====== SCROLLBAR ====== */
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #00ffcc;
+        border-radius: 10px;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 # ====== Session state ======
 st.session_state.setdefault("logged_in", False)
@@ -616,4 +665,5 @@ else:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
 
