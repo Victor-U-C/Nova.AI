@@ -148,90 +148,51 @@ def save_chat(username: str, chat_history):
         json.dump(chat_history, f, indent=2, ensure_ascii=False)
 
 # ====== UI Theme ======
-st.markdown("""
-<style>
-/* Main app background */
-.stApp {
-    background: linear-gradient(135deg, #1a1a1a, #2d2d2d, #1a1a2e) !important;
-    background-size: 400% 400% !important;
-    animation: gradientMove 15s ease infinite !important;
-    min-height: 100vh !important;
-}
-/* Sidebar styling */
-[data-testid="stSidebar"] {
-    background: linear-gradient(135deg, #2d2d2d, #1a1a2e, #333333) !important;
-    background-size: 400% 400% !important;
-    animation: gradientMove 15s ease infinite !important;
-}
-@keyframes gradientMove {
-    0% {background-position: 0% 50%;}
-    50% {background-position: 100% 50%;}
-    100% {background-position: 0% 50%;}
-}
-/* Force ALL text to be visible */
-.stApp, .stApp *, .stMarkdown, .stMarkdown *, 
-.stText, .stText *, p, span, div, label { color: #ffffff !important; }
-/* Streamlit specific elements */
-.stMarkdown p, .stMarkdown div, .stMarkdown span { color: #ffffff !important; }
-/* Tab content */
-.stTabs [data-baseweb="tab-panel"] {
-    background-color: rgba(45,45,45,0.3) !important;
-    padding: 20px !important;
-    border-radius: 10px !important;
-    border: 1px solid rgba(0,255,204,0.2) !important;
-}
-/* Headers */
-h1, h2, h3, h4, h5, h6 {
-    color: #00ffcc !important;
-    text-shadow: 0 0 10px rgba(0,255,204,0.5);
-}
-/* Input fields */
-.stTextInput > div > div > input,
-.stTextArea > div > div > textarea {
-    background-color: #3d3d3d !important;
-    color: #ffffff !important;
-    border: 2px solid #00ffcc !important;
-    border-radius: 10px !important;
-    padding: 15px !important;
-    font-size: 16px !important;
-}
-.stTextInput > div > div > input:focus,
-.stTextArea > div > div > textarea:focus {
-    border-color: #0077ff !important;
-    box-shadow: 0 0 20px rgba(0,255,204,0.8) !important;
-    outline: none !important;
-}
-.stTextInput > label, .stTextArea > label {
-    color: #00ffcc !important; font-weight: bold !important; font-size: 18px !important;
-}
-/* Buttons */
-.stButton > button {
-    background: linear-gradient(45deg, #00ffcc, #0077ff) !important;
-    color: #000 !important; font-size: 16px !important; font-weight: bold !important;
-    border: none !important; border-radius: 12px !important; padding: 12px 24px !important;
-    cursor: pointer !important; box-shadow: 0 4px 15px rgba(0,255,204,0.4) !important;
-    transition: all 0.3s ease !important; width: 100% !important;
-}
-.stButton > button:hover {
-    background: linear-gradient(45deg, #0077ff, #00ffcc) !important;
-    color: #fff !important; box-shadow: 0 6px 20px rgba(0,255,204,0.8) !important;
-    transform: translateY(-2px) scale(1.02) !important;
-}
-/* Loading animation */
-@keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.5); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
-.loading-circle { width: 30px; height: 30px; margin: 20px auto; border-radius: 50%; background: linear-gradient(45deg, #00ffcc, #0077ff); animation: pulse 1.5s infinite; box-shadow: 0 0 20px rgba(0,255,204,0.8); }
-/* Scrollbar */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #2d2d2d; border-radius: 10px; }
-::-webkit-scrollbar-thumb { background: #00ffcc; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #0077ff; }
-/* Code blocks */
-code { background-color: #2d2d2d; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; }
-pre { background-color: #2d2d2d; padding: 12px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #00ffcc; }
-.chat-message { padding: 15px; margin: 10px 0; border-radius: 12px; background-color: rgba(45,45,45,0.7); backdrop-filter: blur(5px); animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+    /* ====== Custom Dark Theme Fixes ====== */
+
+    /* Sidebar background */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
+        color: white;
+    }
+
+    /* Chat bubbles */
+    .user-bubble {
+        background-color: #2c2c2c;
+        color: #ffffff;
+        padding: 8px 12px;
+        border-radius: 12px;
+        margin: 4px 0;
+    }
+
+    .ai-bubble {
+        background-color: #1e1e1e;
+        color: #00ffcc;
+        padding: 8px 12px;
+        border-radius: 12px;
+        margin: 4px 0;
+    }
+
+    /* Fix text input + selectbox in dark theme */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > div {
+        background-color: #1E1E1E !important;
+        color: #FFFFFF !important;
+        border: 1px solid #444444 !important;
+        border-radius: 8px !important;
+        padding: 6px;
+    }
+
+    .stSelectbox > div > div > div > div {
+        color: #FFFFFF !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # ====== Session state ======
 st.session_state.setdefault("logged_in", False)
@@ -655,3 +616,4 @@ else:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
